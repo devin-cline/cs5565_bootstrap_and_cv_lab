@@ -1,3 +1,8 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
 Validation Set Approach
 
 ```{r}
@@ -48,6 +53,11 @@ model_testing <- function(train_set) {
     
     return(mse_results)
 }
+```
+```{r}
+result_20 <- model_testing(train_20)
+result_30 <- model_testing(train_30)
+result_40 <- model_testing(train_40)
 ```
 
 ```{r}
