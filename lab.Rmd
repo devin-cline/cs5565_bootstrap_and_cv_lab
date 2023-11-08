@@ -1,0 +1,126 @@
+Validation Set Approach
+
+```{r}
+library(ISLR2)
+set.seed(1930)
+
+# Create training sets of ~ 20, 30, 40, and 50 percent of data
+train_20 <- sample(392, 78)
+train_30 <- sample(392, 118)
+train_40 <- sample(392, 157)
+train_50 <- sample(392, 296)
+
+attach(Auto)
+```
+
+Create model and evaluate MSE for quadratic regression
+```{r}
+lm.fit2 <- lm(mpg ~ poly(horsepower, 2), data = Auto, 
+    subset = train_50)
+mean((mpg - predict(lm.fit2, Auto))[-train_50]^2)
+```
+Create model and evaluate MSE for cubic regression
+```{r}
+lm.fit3 <- lm(mpg ~ poly(horsepower, 3), data = Auto, 
+    subset = train_50)
+mean((mpg - predict(lm.fit3, Auto))[-train_50]^2)
+```
+```{r}
+# Function to perform quadratic and cubic regression training and testing
+# Input: training set from sample()
+# Output: list containing which function was used (quadratic or cubic) and the corresponding results 
+
+# Note: the lab said to do this for the best performing model (quadratic or cubic), which is cubic. 
+#       I did it for both out of curiosity and also because the difference is so marginal that likely a simpler model 
+#       is actually better. 
+model_testing <- function(train_set) {
+    mse_results <- list()  # Create an empty list to store MSE results
+    
+    # Quadratic Model
+    lm.fit2 <- lm(mpg ~ poly(horsepower, 2), data = Auto, subset = train_set)
+    mse_quad <- mean((Auto$mpg - predict(lm.fit2, Auto))[-train_set]^2)
+    mse_results$quadratic <- list(model = "quadratic", mse = mse_quad)
+    
+    # Cubic Model
+    lm.fit3 <- lm(mpg ~ poly(horsepower, 3), data = Auto, subset = train_set)
+    mse_cubic <- mean((Auto$mpg - predict(lm.fit3, Auto))[-train_set]^2)
+    mse_results$cubic <- list(model = "cubic", mse = mse_cubic)
+    
+    return(mse_results)
+}
+```
+
+```{r}
+print(paste("Results for train_20:", result_20$quadratic$model, "MSE =", result_20$quadratic$mse, result_20$cubic$model, "MSE =", result_20$cubic$mse))
+
+print(paste("Results for train_30:", result_30$quadratic$model, "MSE =", result_30$quadratic$mse, result_30$cubic$model, "MSE =", result_30$cubic$mse))
+
+print(paste("Results for train_40:", result_40$quadratic$model, "MSE =", result_40$quadratic$mse, result_40$cubic$model, "MSE =", result_40$cubic$mse))
+```
+Leave-One-Out Cross-Validation
+```{r}
+library(boot)
+```
+
+```{r}
+names(Auto)
+```
+
+```{r}
+cv.error <- rep(0, 10)
+for (i in 1:10) {
+  glm.fit <- glm(mpg ~ poly(weight, i), data = Auto)
+  cv.error[i] <- cv.glm(Auto, glm.fit)$delta[1]
+}
+cv.error
+```
+
+k-Fold Cross-Validation
+
+```{r}
+cv.error.10 <- rep(0, 10)
+for (i in 1:10) {
+  glm.fit <- glm(mpg ~ poly(year, i), data = Auto)
+  cv.error.10[i] <- cv.glm(Auto, glm.fit, K = 10)$delta[1]
+}
+cv.error.10
+```
+
+```{r}
+cv.error.5 <- rep(0, 5)
+for (i in 1:5) {
+  glm.fit <- glm(mpg ~ poly(year, i), data = Auto)
+  cv.error.5[i] <- cv.glm(Auto, glm.fit, K = 5)$delta[1]
+}
+cv.error.5
+```
+Bootstrap
+
+Function outputs the estimate for alpha based on selected observations (index) from data (data)
+```{r}
+alpha.fn <- function(data, index) {
+  X <- data$X[index]
+  Y <- data$Y[index]
+  (var(Y) - cov(X, Y)) / (var(X) + var(Y) - 2 * cov(X, Y))
+}
+```
+
+alpha based on all 100 observations without replacement
+```{r}
+alpha.fn(Portfolio, 1:100)
+```
+```{r}
+alpha.fn(Portfolio, sample(100, 100, replace = T))
+```
+
+```{r}
+boot(Portfolio, alpha.fn, R = 250)
+```
+```{r}
+boot(Portfolio, alpha.fn, R = 500)
+```
+```{r}
+boot(Portfolio, alpha.fn, R = 2500)
+```
+
+The error increases from 250 to 500 and then goes down for 2500, but it was lowest for 250. 
